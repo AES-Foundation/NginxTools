@@ -1,16 +1,32 @@
-﻿using NginxTools.Commands;
+﻿using NginxTools;
+using NginxTools.Commands;
 using NginxTools.Services;
 using System.Text;
 
-// Правильная кодировка в консоли Windows (аналог "chcp 65001")
 Console.OutputEncoding = Encoding.UTF8;
 
-// Каталог NGINX берётся из: аргумента --nginx-dir, переменной среды NGINX_DIR
-// или значения по умолчанию (ваш текущий путь)
-var nginxDir =
-    GetArg(args, "--nginx-dir")
-    ?? Environment.GetEnvironmentVariable("NGINX_DIR")
-    ?? @"F:\Servers\nginx";
+var settings = Settings.Load();
+
+var cliPath = GetArg(args, "--nginx-dir");
+var envPath = Environment.GetEnvironmentVariable("NGINX_DIR");
+
+var nginxDir = PathResolver.Resolve(cliPath, envPath, settings);
+if (nginxDir is null)
+{
+    Console.Error.WriteLine("""
+        Не удалось определить каталог NGINX.
+
+        Варианты решения:
+          • Положите nginxtools рядом с папкой nginx (автоопределение).
+          • Задайте путь в файле nginxtools.settings.json.
+          • Установите переменную среды NGINX_DIR.
+          • Передайте аргумент --nginx-dir <путь>.
+
+        Текущий путь к файлу настроек:
+        """);
+    Console.Error.WriteLine("  " + Settings.SettingsPath);
+    return 1;
+}
 
 if (args.Length == 0)
 {
@@ -18,17 +34,24 @@ if (args.Length == 0)
     return 1;
 }
 
-switch (args[0].ToLowerInvariant())
+try
 {
-    case "startup": return await StartupCommand.RunAsync(nginxDir);
-    case "restart": return await RestartCommand.RunAsync(nginxDir);
-    case "shutdown": return await ShutdownCommand.RunAsync(nginxDir);
-    case "status": return PrintStatus(nginxDir);
-    case "help" or "--help" or "-h": PrintHelp(); return 0;
-    default:
-        Console.Error.WriteLine($"Неизвестная команда: {args[0]}\n");
-        PrintHelp();
-        return 1;
+    return args[0].ToLowerInvariant() switch
+    {
+        "startup" => await StartupCommand.RunAsync(nginxDir),
+        "restart" => await RestartCommand.RunAsync(nginxDir),
+        "shutdown" => await ShutdownCommand.RunAsync(
+                          nginxDir,
+                          TimeSpan.FromSeconds(settings.ShutdownGraceTimeoutSeconds)),
+        "status" => PrintStatus(nginxDir),
+        "help" or "--help" or "-h" => Help(),
+        _ => Unknown(args[0]),
+    };
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"Критическая ошибка: {ex.Message}");
+    return 2;
 }
 
 static string? GetArg(string[] args, string name)
@@ -49,6 +72,19 @@ static int PrintStatus(string nginxDir)
     return 0;
 }
 
+static int Unknown(string cmd)
+{
+    Console.Error.WriteLine($"Неизвестная команда: {cmd}\n");
+    PrintHelp();
+    return 1;
+}
+
+static int Help()
+{
+    PrintHelp();
+    return 0;
+}
+
 static void PrintHelp()
 {
     Console.WriteLine("""
@@ -64,9 +100,10 @@ static void PrintHelp()
           status      Показать текущий статус
           help        Показать эту справку
 
-        Каталог NGINX определяется в таком порядке:
+        Приоритет определения каталога NGINX:
           1. Аргумент --nginx-dir
           2. Переменная среды NGINX_DIR
-          3. Значение по умолчанию: F:\Servers\nginx
+          3. Поле "nginxDir" в nginxtools.settings.json
+          4. Автоопределение рядом с исполняемым файлом
         """);
 }
