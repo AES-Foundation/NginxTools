@@ -1,37 +1,3 @@
-# NGINXTOOLS | ENGLISH INSTRUCTIONS
-
-A cross-platform utility for managing NGINX: startup, graceful restart, and 
-graceful shutdown. Runs on **Windows**, **Linux**, and **Docker** from a 
-single .NET 10 codebase.
-
-## Possibilities
-
-- **startup** - Starting NGINX with a preliminary configuration check
-- **restart** - A graceful restart (`nginx -s reload`), which prevents 
-current connections from being dropped, and if a configuration error 
-occurs, NGINX continues to run with the old working configuration.
-- **shutdown** - Graceful shutdown (`nginx -s quit`) with a wait
-for active requests to finish and a forced kill after a timeout
-- **Auto-detection** of the NGINX directory next to the executable
-- **External settings file** - no need to recompile the application
-- **Single-file publishing** - one binary, no dependencies
-
-## Requirements
-
-- .NET 10 SDK — **for building only**
-- NGINX (Windows or Linux)
-
-Released releases are published as self-contained single-file binaries:
-no .NET required on the target machine.
-
-## Build
-
-```bash
-git clone https://github.com/AES-Foundation/nginxtools.git
-cd nginxtools
-dotnet build
-```
-
 # NGINXTOOLS | RUSSIAN INSTRUCTIONS
 
 Кроссплатформенная утилита для управления NGINX: запуск, плавный перезапуск
@@ -65,3 +31,58 @@ git clone https://github.com/AES-Foundation/nginxtools.git
 cd nginxtools
 dotnet build
 ```
+
+## Публикация под конкретную платформу
+### Windows x64
+```bash
+dotnet publish src/NginxTools -c Release -r win-x64 --self-contained \
+    -p:PublishSingleFile=true -o ./dist/win
+```
+
+### Linux x64
+```bash
+dotnet publish src/NginxTools -c Release -r linux-x64 --self-contained \
+    -p:PublishSingleFile=true -o ./dist/linux
+```
+
+### Linux ARM64
+```bash
+dotnet publish src/NginxTools -c Release -r linux-arm64 --self-contained \
+    -p:PublishSingleFile=true -o ./dist/arm64
+```
+
+## Пример расположения файлов NGINX
+`
+my-server/
+├── nginxtools.exe      <-- ваш бинарник
+└── nginx/              <-- ваш NGINX
+    ├── nginx.exe
+    ├── conf/
+    └── ...
+`
+
+## Вызов управления (Пример на Windows)
+### Запуск NGINX
+```cmd
+.\nginxtools.exe startup
+```
+
+### Перезапуск NGINX
+```cmd
+.\nginxtools.exe restart
+```
+
+### Остановка NGINX
+```cmd
+.\nginxtools.exe shutdown
+```
+
+## Файл конфигурации
+Файл конфигурации `nginxtools.settings.json` содержит конфигурацию запуска,
+обслуживания и т.п., располагается рядом с исполняемым файлом `nginxtools`.
+
+| Поле | Описание | По умолчанию |
+|---|---|---|
+| `nginxDir` | Явный путь к каталогу NGINX. `null` - использовать автоопределение | `null` |
+| `autoDetectNginx` | Искать NGINX рядом с бинарником | `true` |
+| `shutdownGraceTimeoutSeconds` | Таймаут плавного завершения перед принудительным kill | `30` |
