@@ -1,4 +1,4 @@
-# nginxtools | ENGLISH INSTRUCTIONS
+# NGINXTOOLS | ENGLISH INSTRUCTIONS
 
 A cross-platform utility for managing NGINX: startup, graceful restart, and 
 graceful shutdown. Runs on **Windows**, **Linux**, and **Docker** from a 
@@ -32,7 +32,7 @@ cd nginxtools
 dotnet build
 ```
 
-# nginxtools | RUSSIAN INSTRUCTIONS
+# NGINXTOOLS | RUSSIAN INSTRUCTIONS
 
 Кроссплатформенная утилита для управления NGINX: запуск, плавный перезапуск
 и корректное завершение. Работает на **Windows**, **Linux** и в **Docker**
