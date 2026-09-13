@@ -34,21 +34,18 @@ dotnet build
 
 ## Публикация под конкретную платформу
 ### Windows x64
-```bash
-dotnet publish src/NginxTools -c Release -r win-x64 --self-contained \
-    -p:PublishSingleFile=true -o ./dist/win
+```powershell
+dotnet publish src/NginxTools -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./dist/win
 ```
 
 ### Linux x64
-```bash
-dotnet publish src/NginxTools -c Release -r linux-x64 --self-contained \
-    -p:PublishSingleFile=true -o ./dist/linux
+```powershell
+dotnet publish NginxTools -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o ./dist/linux
 ```
 
 ### Linux ARM64
-```bash
-dotnet publish src/NginxTools -c Release -r linux-arm64 --self-contained \
-    -p:PublishSingleFile=true -o ./dist/arm64
+```powershell
+dotnet publish NginxTools -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -o ./dist/arm64
 ```
 
 ## Пример расположения файлов NGINX
