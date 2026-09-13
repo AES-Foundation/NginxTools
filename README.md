@@ -52,14 +52,14 @@ dotnet publish src/NginxTools -c Release -r linux-arm64 --self-contained \
 ```
 
 ## Пример расположения файлов NGINX
-`
+```
 my-server/
 ├── nginxtools.exe      <-- ваш бинарник
 └── nginx/              <-- ваш NGINX
     ├── nginx.exe
     ├── conf/
     └── ...
-`
+```
 
 ## Вызов управления (Пример на Windows)
 ### Запуск NGINX
