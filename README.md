@@ -35,7 +35,7 @@ dotnet build
 ## Публикация под конкретную платформу
 ### Windows x64
 ```powershell
-dotnet publish src/NginxTools -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./dist/win
+dotnet publish NginxTools -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./dist/win
 ```
 
 ### Linux x64
