@@ -4,7 +4,7 @@ namespace NginxTools.Commands
 {
     public static class StartupCommand
     {
-        public static async Task<int> RunAsync(string nginxDir, bool skipCfCheck = false)
+        public static async Task<int> RunAsync(string nginxDir, Settings settings, bool skipCfCheck = false)
         {
             var nginx = new NginxController(nginxDir);
             Console.WriteLine($"Каталог NGINX: {nginx.NginxDir}");
@@ -14,6 +14,11 @@ namespace NginxTools.Commands
                 Console.Error.WriteLine("NGINX уже запущен. Для применения изменений используйте 'restart'.");
                 return 1;
             }
+
+            Console.WriteLine("Обновление IP-диапазонов перед запуском...\n");
+            var updater = new IpSourceUpdater(nginx, settings);
+            await updater.RunAllAsync();
+            Console.WriteLine();
 
             if (!File.Exists(nginx.ConfigPath))
             {
@@ -27,10 +32,6 @@ namespace NginxTools.Commands
                 Console.Error.WriteLine("Конфигурация некорректна. Запуск отменён.");
                 return 1;
             }
-
-            // ЗДЕСЬ позже добавим:
-            // if (!skipCfCheck)
-            //     await new CloudflareIpUpdater(nginxDir).RunAsync();
 
             Console.WriteLine("Запуск NGINX...");
             var pid = nginx.Start();

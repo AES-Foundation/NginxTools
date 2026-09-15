@@ -17,14 +17,35 @@ namespace NginxTools
         [JsonPropertyName("shutdownGraceTimeoutSeconds")]
         public int ShutdownGraceTimeoutSeconds { get; set; } = 30;
 
+        /// <summary>Заголовок, из которого берётся реальный IP. Единый на весь http-блок.</summary>
+        [JsonPropertyName("realIpHeader")]
+        public string RealIpHeader { get; set; } = "CF-Connecting-IP";
+
+        /// <summary>Использовать рекурсивный поиск реального IP по цепочке доверенных прокси.</summary>
+        [JsonPropertyName("realIpRecursive")]
+        public bool RealIpRecursive { get; set; } = true;
+
+        /// <summary>Источники IP-диапазонов. По умолчанию — только Cloudflare.</summary>
+        [JsonPropertyName("ipSources")]
+        public List<IpSourceSettings> IpSources { get; set; } = new()
+    {
+        new IpSourceSettings
+        {
+            Name = "cloudflare",
+            Enabled = true,
+            Ipv4Url = "https://www.cloudflare.com/ips-v4",
+            Ipv6Url = "https://www.cloudflare.com/ips-v6",
+            OutputFile = "cloudflare_set_real_ip_from.conf",
+        },
+    };
+
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
             PropertyNameCaseInsensitive = true,
         };
 
-        public static string SettingsPath =>
-            Path.Combine(AppContext.BaseDirectory, "nginxtools.settings.json");
+        public static string SettingsPath => Path.Combine(AppContext.BaseDirectory, "nginxtools.settings.json");
 
         public static Settings Load()
         {
@@ -44,5 +65,28 @@ namespace NginxTools
                 return new Settings();
             }
         }
+    }
+
+    public sealed class IpSourceSettings
+    {
+        /// <summary>Имя источника — используется в логах и для имени по умолчанию.</summary>
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = "unnamed";
+
+        /// <summary>Включен ли источник. Отключённые не обновляются и не включаются в сводный файл.</summary>
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>URL со списком IPv4-диапазонов (по одному в строке). null — IPv4 не используется.</summary>
+        [JsonPropertyName("ipv4Url")]
+        public string? Ipv4Url { get; set; }
+
+        /// <summary>URL со списком IPv6-диапазонов. null — IPv6 не используется.</summary>
+        [JsonPropertyName("ipv6Url")]
+        public string? Ipv6Url { get; set; }
+
+        /// <summary>Имя выходного .conf-файла (относительно каталога conf/ NGINX).</summary>
+        [JsonPropertyName("outputFile")]
+        public string OutputFile { get; set; } = "real_ip_source.conf";
     }
 }

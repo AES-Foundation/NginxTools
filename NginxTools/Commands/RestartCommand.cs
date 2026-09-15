@@ -4,7 +4,7 @@ namespace NginxTools.Commands
 {
     public static class RestartCommand
     {
-        public static async Task<int> RunAsync(string nginxDir)
+        public static async Task<int> RunAsync(string nginxDir, Settings settings)
         {
             var nginx = new NginxController(nginxDir);
             Console.WriteLine($"Каталог NGINX: {nginx.NginxDir}");

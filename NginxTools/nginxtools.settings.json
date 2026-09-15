@@ -1,5 +1,16 @@
 ﻿{
   "nginxDir": "F:\\Servers\\nginx",
   "autoDetectNginx": true,
-  "shutdownGraceTimeoutSeconds": 30
+  "shutdownGraceTimeoutSeconds": 30,
+  "realIpHeader": "CF-Connecting-IP",
+  "realIpRecursive": true,
+  "ipSources": [
+    {
+      "name": "cloudflare",
+      "enabled": true,
+      "ipv4Url": "https://www.cloudflare.com/ips-v4",
+      "ipv6Url": "https://www.cloudflare.com/ips-v6",
+      "outputFile": "cloudflare_set_real_ip_from.conf"
+    }
+  ]
 }

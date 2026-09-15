@@ -13,36 +13,24 @@ var envPath = Environment.GetEnvironmentVariable("NGINX_DIR");
 var nginxDir = PathResolver.Resolve(cliPath, envPath, settings);
 if (nginxDir is null)
 {
-    Console.Error.WriteLine("""
-        Не удалось определить каталог NGINX.
-
-        Варианты решения:
-          • Положите nginxtools рядом с папкой nginx (автоопределение).
-          • Задайте путь в файле nginxtools.settings.json.
-          • Установите переменную среды NGINX_DIR.
-          • Передайте аргумент --nginx-dir <путь>.
-
-        Текущий путь к файлу настроек:
-        """);
-    Console.Error.WriteLine("  " + Settings.SettingsPath);
+    Console.Error.WriteLine("Не удалось определить каталог NGINX. См. README, раздел «Конфигурация».");
     return 1;
 }
 
-if (args.Length == 0)
-{
-    PrintHelp();
-    return 1;
-}
+if (args.Length == 0) { PrintHelp(); return 1; }
 
 try
 {
     return args[0].ToLowerInvariant() switch
     {
-        "startup" => await StartupCommand.RunAsync(nginxDir),
-        "restart" => await RestartCommand.RunAsync(nginxDir),
+        "startup" => await StartupCommand.RunAsync(nginxDir, settings),
+        "restart" => await RestartCommand.RunAsync(nginxDir, settings),
         "shutdown" => await ShutdownCommand.RunAsync(
-                          nginxDir,
-                          TimeSpan.FromSeconds(settings.ShutdownGraceTimeoutSeconds)),
+                             nginxDir,
+                             TimeSpan.FromSeconds(settings.ShutdownGraceTimeoutSeconds)),
+        "update-ips" => await UpdateIpsCommand.RunAsync(
+                             nginxDir, settings,
+                             reload: !HasFlag(args, "--no-reload")),
         "status" => PrintStatus(nginxDir),
         "help" or "--help" or "-h" => Help(),
         _ => Unknown(args[0]),
@@ -61,6 +49,9 @@ static string? GetArg(string[] args, string name)
             return args[i + 1];
     return null;
 }
+
+static bool HasFlag(string[] args, string name) =>
+    args.Any(a => a.Equals(name, StringComparison.OrdinalIgnoreCase));
 
 static int PrintStatus(string nginxDir)
 {
@@ -97,6 +88,7 @@ static void PrintHelp()
           startup     Запустить NGINX (с проверкой конфигурации)
           restart     Плавный перезапуск (nginx -s reload)
           shutdown    Плавное завершение (nginx -s quit с fallback)
+          update-ips  Обновление доверительных IP диапазовнов
           status      Показать текущий статус
           help        Показать эту справку
 

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace NginxTools.Services
 {
@@ -8,6 +7,7 @@ namespace NginxTools.Services
         public string NginxDir { get; }
         public string NginxBinary { get; }
         public string ConfigPath { get; }
+        public string ConfigDir { get; }
 
         public NginxController(string nginxDir)
         {
@@ -15,6 +15,7 @@ namespace NginxTools.Services
             NginxBinary = Path.Combine(NginxDir,
                 OperatingSystem.IsWindows() ? "nginx.exe" : "nginx");
             ConfigPath = Path.Combine(NginxDir, "conf", "nginx.conf");
+            ConfigDir = Path.Combine(NginxDir, "conf");
         }
 
         /// <summary>Проверяет, запущен ли сейчас NGINX.</summary>
