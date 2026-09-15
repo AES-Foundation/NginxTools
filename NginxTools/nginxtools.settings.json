@@ -4,6 +4,8 @@
   "shutdownGraceTimeoutSeconds": 30,
   "realIpHeader": "CF-Connecting-IP",
   "realIpRecursive": true,
+  "backupsDir": null,
+  "removeOldBackups": false,
   "ipSources": [
     {
       "name": "cloudflare",

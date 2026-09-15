@@ -1,41 +1,49 @@
 ﻿using NginxTools.Services;
+using NginxTools.UI;
 
 namespace NginxTools.Commands
 {
     public static class StartupCommand
     {
+        /// <summary>
+        /// Выполняет команду запуска NGINX.
+        /// </summary>
+        /// <param name="nginxDir">Путь к исполняемому NGINX.</param>
+        /// <param name="settings">Параметры конфигурации.</param>
+        /// <param name="skipCfCheck">Пропустить проверку диапазонов.</param>
+        /// <returns>Возвращает <see langword="int"/> код процесса.</returns>
         public static async Task<int> RunAsync(string nginxDir, Settings settings, bool skipCfCheck = false)
         {
             var nginx = new NginxController(nginxDir);
-            Console.WriteLine($"Каталог NGINX: {nginx.NginxDir}");
+            ConsoleUi.Dim($"Каталог NGINX: {nginx.NginxDir}");
 
             if (nginx.IsRunning())
             {
-                Console.Error.WriteLine("NGINX уже запущен. Для применения изменений используйте 'restart'.");
+                ConsoleUi.Fail("NGINX уже запущен. Для применения изменений используйте 'restart'.");
                 return 1;
             }
 
-            Console.WriteLine("Обновление IP-диапазонов перед запуском...\n");
+            ConsoleUi.WarnMsg("Обновление IP-диапазонов перед запуском...\n");
             var updater = new IpSourceUpdater(nginx, settings);
             await updater.RunAllAsync();
             Console.WriteLine();
 
             if (!File.Exists(nginx.ConfigPath))
             {
-                Console.Error.WriteLine($"Не найден конфигурационный файл: {nginx.ConfigPath}");
+                ConsoleUi.Fail($"Не найден конфигурационный файл: {nginx.ConfigPath}");
                 return 1;
             }
 
-            Console.WriteLine("Проверка конфигурации (nginx -t)...");
+            ConsoleUi.WarnMsg("Проверка конфигурации (nginx -t)...");
             if (await nginx.TestConfigAsync() != 0)
             {
-                Console.Error.WriteLine("Конфигурация некорректна. Запуск отменён.");
+                ConsoleUi.Fail("Конфигурация некорректна. Запуск отменён.");
                 return 1;
             }
 
-            Console.WriteLine("Запуск NGINX...");
+            ConsoleUi.WarnMsg("Запуск NGINX...");
             var pid = nginx.Start();
-            Console.WriteLine($"NGINX запущен (PID {pid}).");
+            ConsoleUi.Ok($"NGINX запущен (PID {pid}).");
             return 0;
         }
     }

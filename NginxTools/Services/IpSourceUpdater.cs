@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using NginxTools.UI;
+using System.Text;
 
 namespace NginxTools.Services
 {
@@ -7,7 +8,7 @@ namespace NginxTools.Services
         private static readonly HttpClient Http = new()
         {
             Timeout = TimeSpan.FromSeconds(20),
-            DefaultRequestHeaders = { { "User-Agent", "nginxtools/1.0" } },
+            DefaultRequestHeaders = { { "User-Agent", "nginxtools/2.0" } },
         };
 
         private readonly NginxController _nginx;
@@ -27,6 +28,11 @@ namespace NginxTools.Services
             int Ipv6Count,
             string? Error);
 
+        /// <summary>
+        /// Выполняет процесс обновления IP диапазонов.
+        /// </summary>
+        /// <param name="ct">Токен отмены.</param>
+        /// <returns>Возвращает результаты обновлений.</returns>
         public async Task<IReadOnlyList<SourceResult>> RunAllAsync(CancellationToken ct = default)
         {
             var results = new List<SourceResult>();
@@ -35,27 +41,33 @@ namespace NginxTools.Services
             {
                 if (!source.Enabled)
                 {
-                    Console.WriteLine($"[{source.Name}] отключён в настройках — пропускаем.");
+                    ConsoleUi.WarnMsg($"[{source.Name}] отключён в настройках — пропускаем.");
                     continue;
                 }
 
-                Console.WriteLine($"[{source.Name}] обновление...");
+                ConsoleUi.Dim($"[{source.Name}] обновление...");
                 results.Add(await UpdateOneAsync(source, ct));
             }
 
             if (results.Any(r => r.Changed))
             {
                 WriteAggregateFile(results);
-                Console.WriteLine("Сводный файл real_ip.conf обновлён.");
+                ConsoleUi.Ok("Сводный файл real_ip.conf обновлён.");
             }
             else
             {
-                Console.WriteLine("Сводный файл real_ip.conf не изменился.");
+                ConsoleUi.Dim("Сводный файл real_ip.conf не изменился.");
             }
 
             return results;
         }
 
+        /// <summary>
+        /// Выполняет все действия обновления в одном методе.
+        /// </summary>
+        /// <param name="source">Источник данных из конфигурации.</param>
+        /// <param name="ct">Токен отмены.</param>
+        /// <returns>Возвращает <see langword="SourceResult"/> с итоговым результатом.</returns>
         private async Task<SourceResult> UpdateOneAsync(IpSourceSettings source, CancellationToken ct)
         {
             try
@@ -86,6 +98,12 @@ namespace NginxTools.Services
             }
         }
 
+        /// <summary>
+        /// Делает запрос, на указанные источники.
+        /// </summary>
+        /// <param name="url">URL адрес с данными.</param>
+        /// <param name="ct">Токен отмены.</param>
+        /// <returns>Возвращает массив <see langword="string"/>[] с полученными данными диапазонов.</returns>
         private static async Task<string[]> FetchAsync(string url, CancellationToken ct)
         {
             var text = await Http.GetStringAsync(url, ct);
@@ -95,7 +113,13 @@ namespace NginxTools.Services
                 .ToArray();
         }
 
-        /// <summary>Собирает содержимое файла БЕЗ timestamp — чтобы можно было сравнивать.</summary>
+        /// <summary>
+        /// Собирает содержимое файла БЕЗ timestamp — чтобы можно было сравнивать.
+        /// </summary>
+        /// <param name="source">Источник IP диапазонов из конфигураций.</param>
+        /// <param name="ipv4">Массив с данными IPv4.</param>
+        /// <param name="ipv6">Массив с данными IPv6.</param>
+        /// <returns>Возвращает <see langword="string"/> с телом информации для файла.</returns>
         private static string BuildBody(IpSourceSettings source, string[] ipv4, string[] ipv6)
         {
             var sb = new StringBuilder();
@@ -123,6 +147,12 @@ namespace NginxTools.Services
             return sb.ToString().Replace("\r\n", "\n").TrimEnd() + "\n";
         }
 
+        /// <summary>
+        /// Запись, если есть изменения.
+        /// </summary>
+        /// <param name="path">Путь сохраняемого файла.</param>
+        /// <param name="body">Тело данных, ранее сгенерированное.</param>
+        /// <returns>Возвращает <see langword="true"/> в случае успешной записи; <see langword="false"/> при отсутствии изменений.</returns>
         private static bool WriteIfChanged(string path, string body)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -130,7 +160,6 @@ namespace NginxTools.Services
             if (File.Exists(path))
             {
                 var existing = File.ReadAllText(path);
-                // Сравниваем, игнорируя строку с timestamp
                 if (StripTimestamp(existing) == StripTimestamp(body))
                     return false;
             }
@@ -140,23 +169,29 @@ namespace NginxTools.Services
                 $"# Утилита: nginxtools\n" +
                 body;
 
-            // Атомарная запись: пишем во временный файл и подменяем
             var tmp = path + ".tmp";
             File.WriteAllText(tmp, withHeader, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             File.Move(tmp, path, overwrite: true);
             return true;
         }
 
+        /// <summary>
+        /// Получение временного интервала в строке.
+        /// </summary>
+        /// <param name="content">Контент, в котором необходимо найти.</param>
+        /// <returns>Возвращает <see langword="string" /> со временем.</returns>
         private static string StripTimestamp(string content)
         {
-            // Выкидываем первые две строки (с timestamp и утилитой), если они есть
             var lines = content.Split('\n');
             var from = lines.Length >= 2 && lines[0].StartsWith("# Автоматически")
                 ? 2 : 0;
             return string.Join('\n', lines.Skip(from));
         }
 
-        /// <summary>Пишет сводный файл real_ip.conf с real_ip_header и include на все источники.</summary>
+        /// <summary>
+        /// Пишет сводный файл real_ip.conf с real_ip_header и include на все источники.
+        /// </summary>
+        /// <param name="results">Результат от источников.</param>
         private void WriteAggregateFile(IReadOnlyList<SourceResult> results)
         {
             var active = results.Where(r => r.Ok).Select(r => r.Name).ToHashSet();

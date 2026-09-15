@@ -1,9 +1,16 @@
 ﻿using NginxTools.Services;
+using NginxTools.UI;
 
 namespace NginxTools.Commands
 {
     public static class ShutdownCommand
     {
+        /// <summary>
+        /// Выполняет команду отключения NGINX.
+        /// </summary>
+        /// <param name = "nginxDir" > Путь к исполняемому NGINX.</param>
+        /// <param name="gracefulTimeout">Время ожидания, до принудительной остановки.</param>
+        /// <returns>Возвращает <see langword="int"/> код процесса.</returns>
         public static async Task<int> RunAsync(string nginxDir, TimeSpan? gracefulTimeout = null)
         {
             var nginx = new NginxController(nginxDir);
@@ -11,29 +18,29 @@ namespace NginxTools.Commands
 
             if (!nginx.IsRunning())
             {
-                Console.WriteLine("NGINX не запущен.");
+                ConsoleUi.Fail("NGINX не запущен.");
                 return 0;
             }
 
-            Console.WriteLine("Плавное завершение (nginx -s quit). Ожидание завершения текущих запросов...");
+            ConsoleUi.WarnMsg("Плавное завершение (nginx -s quit). Ожидание завершения текущих запросов...");
             await nginx.QuitAsync();
 
             if (await nginx.WaitForStopAsync(timeout))
             {
-                Console.WriteLine("NGINX корректно завершён.");
+                ConsoleUi.Ok("NGINX корректно завершён.");
                 return 0;
             }
 
-            Console.WriteLine($"NGINX не завершился за {timeout.TotalSeconds} секунд. Принудительное завершение...");
+            ConsoleUi.WarnMsg($"NGINX не завершился за {timeout.TotalSeconds} секунд. Принудительное завершение...");
             nginx.KillAll();
 
             if (await nginx.WaitForStopAsync(TimeSpan.FromSeconds(5)))
             {
-                Console.WriteLine("NGINX принудительно завершён.");
+                ConsoleUi.Ok("NGINX принудительно завершён.");
                 return 0;
             }
 
-            Console.Error.WriteLine("Не удалось остановить NGINX.");
+            ConsoleUi.Fail("Не удалось остановить NGINX.");
             return 1;
         }
     }

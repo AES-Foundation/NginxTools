@@ -1,38 +1,45 @@
 ﻿using NginxTools.Services;
+using NginxTools.UI;
 
 namespace NginxTools.Commands
 {
     public static class RestartCommand
     {
+        /// <summary>
+        /// Выполнение команды перезапуска NGINX.
+        /// </summary>
+        /// <param name="nginxDir">Путь к исполняемому NGINX.</param>
+        /// <param name="settings">Настройки конфигурации.</param>
+        /// <returns>Возвращает <see langword="int"/> код процесса.</returns>
         public static async Task<int> RunAsync(string nginxDir, Settings settings)
         {
             var nginx = new NginxController(nginxDir);
-            Console.WriteLine($"Каталог NGINX: {nginx.NginxDir}");
+            ConsoleUi.WriteLine($"Каталог NGINX: {nginx.NginxDir}", ConsoleUi.Muted);
 
             if (!nginx.IsRunning())
             {
-                Console.Error.WriteLine(
+                ConsoleUi.Fail(
                     "NGINX не запущен. Используйте команду 'startup' для первого запуска.");
                 return 1;
             }
 
-            Console.WriteLine("Проверка конфигурации (nginx -t)...");
+            ConsoleUi.WarnMsg("Проверка конфигурации (nginx -t)...");
             if (await nginx.TestConfigAsync() != 0)
             {
-                Console.Error.WriteLine(
+                ConsoleUi.Fail(
                     "Конфигурация некорректна. Перезапуск отменён — NGINX продолжает работать со старой конфигурацией.");
                 return 1;
             }
 
-            Console.WriteLine("Плавный перезапуск (nginx -s reload)...");
+            ConsoleUi.WarnMsg("Плавный перезапуск (nginx -s reload)...");
             var code = await nginx.ReloadAsync();
             if (code == 0)
             {
-                Console.WriteLine("Перезапуск выполнен успешно.");
+                ConsoleUi.Ok("Перезапуск выполнен успешно.");
                 return 0;
             }
 
-            Console.Error.WriteLine($"Ошибка перезапуска, код {code}.");
+            ConsoleUi.Fail($"Ошибка перезапуска, код {code}.");
             return code;
         }
     }
