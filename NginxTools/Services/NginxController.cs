@@ -180,7 +180,7 @@ namespace NginxTools.Services
             if (!string.IsNullOrWhiteSpace(stdout))
                 ConsoleUi.Dim(stdout.TrimEnd());
             if (!string.IsNullOrWhiteSpace(stderr))
-                ConsoleUi.Fail(stderr.TrimEnd());
+                ConsoleUi.Dim(stderr.TrimEnd());
 
             return p.ExitCode;
         }

@@ -67,6 +67,8 @@ static int PrintStatus(string nginxDir)
         new[] { "NGINX", nginx.IsRunning() ? "Запущен" : "Остановлен" },
     };
 
+    Table.Render(headers, rows, maxWidths: new[] { 16, 20 });
+
     return 0;
 }
 
